@@ -4,7 +4,7 @@ const path = require('path');
 const { generateExtensionFile } = require('./generator');
 
 function showHelp() {
-  console.log('Scratch3 Extension Generator');
+  console.log('Scratch3 (Compiled) Extension Generator');
   console.log('----------------------------');
   console.log('Usage: node index.js <config-file> [output-file]');
   console.log('');
