@@ -1,0 +1,24 @@
+{
+  "name": "scratch3-ext-gen",
+  "version": "1.0.0",
+  "description": "Scratch3 Extension Generator",
+  "main": "index.js",
+  "bin": {
+    "scratch3-ext-gen": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "scratch",
+    "scratch3",
+    "extension",
+    "generator"
+  ],
+  "author": "Mistium",
+  "license": "MPL-2.0",
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}
