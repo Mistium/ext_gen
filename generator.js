@@ -110,7 +110,7 @@ class ExtensionGenerator {
       
       // Add code for each argument
       if (block.arguments) {
-        for (const argName in block.arguments) {
+        for (const argName of block.arguments) {
           const genId = block.arguments[argName].gen_id;
           const argType = block.arguments[argName].type.split('.').pop().toLowerCase();
           let method = 'asString';
@@ -122,11 +122,8 @@ class ExtensionGenerator {
         }
       }
       
-      // Add appropriate return statement based on block type
-      if (block.blockType.endsWith('COMMAND') || block.blockType.endsWith('CONDITIONAL')) {
-        blockCode += `          this.source += \`\\n${block.code};\\n\`;\n`;
-        blockCode += `          return;\n`;
-      }
+      blockCode += `          this.source += \`\\n${block.code};\\n\`;\n`;
+      blockCode += `          return;\n`;
       
       code += blockCode;
     });
@@ -151,7 +148,7 @@ class ExtensionGenerator {
       
       // Add code for each argument
       if (block.arguments) {
-        for (const argName in block.arguments) {
+        for (const argName of block.arguments) {
           const genId = block.arguments[argName].gen_id;
           const argType = block.arguments[argName].type.split('.').pop().toLowerCase();
           let method = 'asString';
@@ -188,12 +185,12 @@ class ExtensionGenerator {
       if (typeof block === 'string') return; // Skip labels and separators
       
       const opcode = block.opcode;
-      let blockCode = `\n        case 'mistiumComments_${opcode}':\n`;
-      blockCode += `          return {\n            block, kind: 'mistiumComments.${opcode}',\n`;
+      let blockCode = `\n        case '${extension.id}_${opcode}':\n`;
+      blockCode += `          return {\n            block, kind: '${extension.id}.${opcode}',\n`;
       
       // Add code for each argument
       if (block.arguments) {
-        for (const argName in block.arguments) {
+        for (const argName of block.arguments) {
           blockCode += `              ${argName}: this.descendInputOfBlock(block, '${argName}'),\n`;
         }
       }
@@ -219,12 +216,12 @@ class ExtensionGenerator {
       if (typeof block === 'string') return; // Skip labels and separators
       
       const opcode = block.opcode;
-      let blockCode = `\n        case 'mistiumComments_${opcode}':\n`;
+      let blockCode = `\n        case '${extension.id}_${opcode}':\n`;
       blockCode += `          return {\n            block,\n            kind: '${extension.id}.${opcode}',\n`;
       
       // Add code for each argument
       if (block.arguments) {
-        for (const argName in block.arguments) {
+        for (const argName of block.arguments) {
           blockCode += `              ${argName}: this.descendInputOfBlock(block, '${argName}'),\n`;
         }
       }
