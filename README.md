@@ -31,7 +31,8 @@ Your configuration file should have this structure:
   "extension": {
     "name": "Extension Name",
     "id": "extensionId",
-    "color1": "#HexColor"
+    "color1": "#HexColor",
+    "comment": "// heya! this is a cool extension" // Text to prepend to your file
   },
   "blocks": [
     "Label Text", // Creates a label block
