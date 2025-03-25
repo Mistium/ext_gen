@@ -95,17 +95,18 @@ class ExtensionGenerator {
   
   /**
    * Generates JSGP handling code for each block
+   * @param {Object} extension - Object of extension details
    * @param {Array} blocks - Array of block definitions
    * @returns {string} - Generated code for JSGP handlers
    */
-  generateJSGPCode(blocks) {
+  generateJSGPCode(extension, blocks) {
     let code = '';
     
     blocks.forEach(block => {
       if (typeof block === 'string') return; // Skip labels and separators
       
       const opcode = block.opcode;
-      let blockCode = `\n        case 'mistiumComments.${opcode}':\n`;
+      let blockCode = `\n        case '${extension.id}.${opcode}':\n`;
       
       // Add code for each argument
       if (block.arguments) {
@@ -135,17 +136,18 @@ class ExtensionGenerator {
   
   /**
    * Generates input handling code for JSGP
+   * @param {Object} extension - Object of extension details
    * @param {Array} blocks - Array of block definitions
    * @returns {string} - Generated code for input handlers
    */
-  generateInputHandlerCode(blocks) {
+  generateInputHandlerCode(extension, blocks) {
     let code = '';
     
     blocks.forEach(block => {
       if (typeof block === 'string') return; // Skip labels and separators
       
       const opcode = block.opcode;
-      let blockCode = `\n        case 'mistiumComments.${opcode}':\n`;
+      let blockCode = `\n        case '${extension.id}.${opcode}':\n`;
       
       // Add code for each argument
       if (block.arguments) {
@@ -175,10 +177,11 @@ class ExtensionGenerator {
   
   /**
    * Generates STGP handling code for each block
+   * @param {Object} extension - Object of extension details
    * @param {Array} blocks - Array of block definitions
    * @returns {string} - Generated code for STGP handlers
    */
-  generateSTGPCode(blocks) {
+  generateSTGPCode(extension, blocks) {
     let code = '';
     
     blocks.forEach(block => {
@@ -205,10 +208,11 @@ class ExtensionGenerator {
   
   /**
    * Generates input handling code for STGP
+   * @param {Object} extension - Object of extension details
    * @param {Array} blocks - Array of block definitions
    * @returns {string} - Generated code for STGP input handlers
    */
-  generateSTGPInputHandlerCode(blocks) {
+  generateSTGPInputHandlerCode(extension, blocks) {
     let code = '';
     
     blocks.forEach(block => {
@@ -216,7 +220,7 @@ class ExtensionGenerator {
       
       const opcode = block.opcode;
       let blockCode = `\n        case 'mistiumComments_${opcode}':\n`;
-      blockCode += `          return {\n            block,\n            kind: 'mistiumComments.${opcode}',\n`;
+      blockCode += `          return {\n            block,\n            kind: '${extension.id}.${opcode}',\n`;
       
       // Add code for each argument
       if (block.arguments) {
@@ -261,10 +265,10 @@ class ExtensionGenerator {
    */
   generateExtension(extension, blocks) {
     const getInfoMethod = this.generateGetInfo(extension, blocks);
-    const jsgpCode = this.generateJSGPCode(blocks);
-    const inputHandlerCode = this.generateInputHandlerCode(blocks);
-    const stgpCode = this.generateSTGPCode(blocks);
-    const stgpInputCode = this.generateSTGPInputHandlerCode(blocks);
+    const jsgpCode = this.generateJSGPCode(extension, blocks);
+    const inputHandlerCode = this.generateInputHandlerCode(extension, blocks);
+    const stgpCode = this.generateSTGPCode(extension, blocks);
+    const stgpInputCode = this.generateSTGPInputHandlerCode(extension, blocks);
     
     return `${extension.comment}
 
