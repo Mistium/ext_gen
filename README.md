@@ -66,4 +66,4 @@ all necessary patches to make the extension work properly.
 
 ## License
 
-MPL-2.0
+GPL-3.0
