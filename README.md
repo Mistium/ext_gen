@@ -1,6 +1,6 @@
 # Scratch3 Extension Generator
 
-A utility to generate Scratch3 extensions based on a configuration file.
+A utility to generate Scratch3 extensions that interface with the TurboWarp compiler based on a configuration file.
 
 ## Installation
 
