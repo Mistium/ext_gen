@@ -3,6 +3,8 @@
  * Creates formatted extension files based on JSON configuration
  */
 
+const { formatCode } = require('./formatter');
+
 class ExtensionGenerator {
   constructor() {
     this.blockTypeMap = {
@@ -74,9 +76,11 @@ class ExtensionGenerator {
     // Process arguments
     if (block.arguments) {
       processedBlock.arguments = {};
-      for (const argName in block.arguments) {
+      let i = 0;
+      for (const argName of Object.keys(block.arguments)) {
+        i ++;
         const argConfig = block.arguments[argName];
-        const genId = this.generateRandomId();
+        const genId = block.opcode + '_arg' + i;
         
         processedBlock.arguments[argName] = {
           "type": this.argTypeMap[argConfig.type],
@@ -85,7 +89,7 @@ class ExtensionGenerator {
         
         // Process code to replace argument placeholder with gen_id reference
         if (processedBlock.code) {
-          processedBlock.code = processedBlock.code.replace(`[${argName}]`, `\${${genId}}`);
+          processedBlock.code = processedBlock.code.replaceAll(`[${argName}]`, `\${${genId}}`);
         }
       }
     }
@@ -104,15 +108,17 @@ class ExtensionGenerator {
     
     blocks.forEach(block => {
       if (typeof block === 'string') return; // Skip labels and separators
-      
+      if (!block.code) return "";
+
       const opcode = block.opcode;
       let blockCode = `\n        case '${extension.id}.${opcode}':\n`;
       
       // Add code for each argument
       if (block.arguments) {
-        for (const argName of block.arguments) {
-          const genId = block.arguments[argName].gen_id;
-          const argType = block.arguments[argName].type.split('.').pop().toLowerCase();
+        for (const argName of Object.keys(block.arguments)) {
+          const argInfo = block.arguments[argName];
+          const genId = argInfo.gen_id;
+          const argType = argInfo.type.split('.').pop().toLowerCase();
           let method = 'asString';
           
           if (argType === 'number') method = 'asNumber';
@@ -122,8 +128,30 @@ class ExtensionGenerator {
         }
       }
       
-      blockCode += `          this.source += \`\\n${block.code};\\n\`;\n`;
-      blockCode += `          return;\n`;
+      // For COMMAND blocks, add to source
+      if (block.blockType.includes('COMMAND')) {
+        blockCode += `          this.source += \`\\n${block.code};\\n\`;\n`;
+        blockCode += `          return;\n`;
+      } 
+      // For CONDITIONAL blocks
+      else if (block.blockType.includes('CONDITIONAL')) {
+        blockCode += `          this.source += \`\\n${block.code};\\n\`;\n`;
+        blockCode += `          return;\n`;
+      }
+      // For BOOLEAN blocks
+      else if (block.blockType.includes('BOOLEAN')) {
+        const valueArg = Object.keys(block.arguments)[0]; // Typically first arg is the value
+        const valueGenId = block.arguments[valueArg].gen_id;
+        blockCode += `          this.source += \`\\nvm.runtime.visualReport("\${block.id}", \${${valueGenId}});\\n\`;\n`;
+        blockCode += `          return;\n`;
+      }
+      // For REPORTER blocks
+      else if (block.blockType.includes('REPORTER')) {
+        const valueArg = Object.keys(block.arguments)[0]; // Typically first arg is the value
+        const valueGenId = block.arguments[valueArg].gen_id;
+        blockCode += `          this.source += \`\\nvm.runtime.visualReport("\${block.id}", \${${valueGenId}});\\n\`;\n`;
+        blockCode += `          return;\n`;
+      }
       
       code += blockCode;
     });
@@ -142,15 +170,17 @@ class ExtensionGenerator {
     
     blocks.forEach(block => {
       if (typeof block === 'string') return; // Skip labels and separators
-      
+      if (!block.code) return "";
+
       const opcode = block.opcode;
       let blockCode = `\n        case '${extension.id}.${opcode}':\n`;
       
       // Add code for each argument
       if (block.arguments) {
-        for (const argName of block.arguments) {
-          const genId = block.arguments[argName].gen_id;
-          const argType = block.arguments[argName].type.split('.').pop().toLowerCase();
+        for (const argName of Object.keys(block.arguments)) {
+          const argInfo = block.arguments[argName];
+          const genId = argInfo.gen_id;
+          const argType = argInfo.type.split('.').pop().toLowerCase();
           let method = 'asString';
           
           if (argType === 'number') method = 'asNumber';
@@ -163,6 +193,7 @@ class ExtensionGenerator {
       let returnType = 'TYPE_UNKNOWN';
       if (block.returns === 'STRING') returnType = 'TYPE_STRING';
       else if (block.returns === 'BOOLEAN') returnType = 'TYPE_BOOLEAN';
+      else if (block.returns === 'NUMBER') returnType = 'TYPE_NUMBER';
       
       blockCode += `          return new TypedInput(\`${block.code}\`, ${returnType});\n`;
       
@@ -183,14 +214,15 @@ class ExtensionGenerator {
     
     blocks.forEach(block => {
       if (typeof block === 'string') return; // Skip labels and separators
-      
+      if (!block.code) return "";
+
       const opcode = block.opcode;
       let blockCode = `\n        case '${extension.id}_${opcode}':\n`;
       blockCode += `          return {\n            block, kind: '${extension.id}.${opcode}',\n`;
       
       // Add code for each argument
       if (block.arguments) {
-        for (const argName of block.arguments) {
+        for (const argName of Object.keys(block.arguments)) {
           blockCode += `              ${argName}: this.descendInputOfBlock(block, '${argName}'),\n`;
         }
       }
@@ -214,14 +246,15 @@ class ExtensionGenerator {
     
     blocks.forEach(block => {
       if (typeof block === 'string') return; // Skip labels and separators
-      
+      if (!block.code) return "";
+
       const opcode = block.opcode;
       let blockCode = `\n        case '${extension.id}_${opcode}':\n`;
       blockCode += `          return {\n            block,\n            kind: '${extension.id}.${opcode}',\n`;
       
       // Add code for each argument
       if (block.arguments) {
-        for (const argName of block.arguments) {
+        for (const argName in block.arguments) {
           blockCode += `              ${argName}: this.descendInputOfBlock(block, '${argName}'),\n`;
         }
       }
@@ -241,15 +274,62 @@ class ExtensionGenerator {
    * @returns {string} - Generated getInfo method content
    */
   generateGetInfo(extension, blocks) {
-    const processedBlocks = blocks.map(block => this.processBlock(block));
+    // Format the blocks array
+    let blocksString = 'blocks: [';
+    
+    blocks.forEach((block, index) => {
+      if (typeof block === 'string') {
+        if (block === '---') blocksString += `\n          "${block}",`;
+        else blocksString += `\n          {\n            "blockType": Scratch.BlockType.LABEL,\n            "text": "${block}"\n          },`;
+      } else {
+        blocksString += '\n          {';
+        
+        // Add opcode if present
+        if (block.opcode) blocksString += `\n            "opcode": "${block.opcode}",`;
+        
+        // Add blockType
+        blocksString += `\n            "blockType": ${block.blockType},`;
+        
+        // Add text
+        blocksString += `\n            "text": "${block.text}",`;
+        
+        if (block.code) blocksString += `\n            "code": "${block.code}",`;
+        if (block.returns) blocksString += `\n            "returns": "${block.returns}",`;
+        if (block.allowDropAnywhere) blocksString += `\n            "allowDropAnywhere": ${block.allowDropAnywhere},`;
+        
+        // Add arguments if present
+        if (block.arguments && Object.keys(block.arguments).length > 0) {
+          blocksString += `\n            "arguments": {`;
+          
+          for (const argName in block.arguments) {
+            const arg = block.arguments[argName];
+            blocksString += `\n              "${argName}": {`;
+            blocksString += `\n                "type": ${arg.type},`;
+            blocksString += `\n                "gen_id": "${arg.gen_id}"`;
+            blocksString += '\n              },';
+          }
+          
+          blocksString = blocksString.slice(0, -1); // Remove trailing comma
+          blocksString += '\n            },';
+        }
+        
+        // Add func
+        blocksString += `\n            "func": "err"`;
+        
+        blocksString += '\n          },';
+      }
+    });
+    
+    // Remove trailing comma and close array
+    blocksString = blocksString.slice(0, -1);
+    blocksString += '\n        ],';
     
     return `    getInfo() {
       return {
         id: '${extension.id}',
         name: '${extension.name}',
         color1: '${extension.color1}',
-        blocks: [${JSON.stringify(processedBlocks, null, 2).slice(1, -1)}
-        ],
+        ${blocksString}
       };
     }`;
   }
@@ -261,13 +341,15 @@ class ExtensionGenerator {
    * @returns {string} - Generated extension file content
    */
   generateExtension(extension, blocks) {
+    blocks = blocks.map(block => this.processBlock(block));
     const getInfoMethod = this.generateGetInfo(extension, blocks);
     const jsgpCode = this.generateJSGPCode(extension, blocks);
     const inputHandlerCode = this.generateInputHandlerCode(extension, blocks);
     const stgpCode = this.generateSTGPCode(extension, blocks);
     const stgpInputCode = this.generateSTGPInputHandlerCode(extension, blocks);
     
-    return `${extension.comment}
+    // Generate the extension code
+    const extensionCode = `${extension.comment}
 
 (function(Scratch) {
   'use strict';
@@ -387,6 +469,9 @@ ${getInfoMethod}
 
   Scratch.extensions.register(new ${extension.id}());
 })(Scratch);`;
+
+    // Format the generated code using Prettier
+    return formatCode(extensionCode);
   }
 }
 

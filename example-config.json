@@ -3,7 +3,7 @@
     "name": "Comments",
     "id": "mistiumComments",
     "color1": "#146fa6",
-    "comment": "/* Name: MistFetch\nAuthor: Mistium\nDescription: my fetch extension for http and stuff cos i needed a better one for originOS\n\nLicense: MPL-2.0\nThis Source Code is subject to the terms of the Mozilla Public License, v2.0,\nIf a copy of the MPL was not distributed with this file,\nThen you can obtain one at https://mozilla.org/MPL/2.0/ */"
+    "comment": "/*  */"
   },
   "blocks": [
     "Single line comment",
