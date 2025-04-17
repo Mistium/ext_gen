@@ -55,11 +55,14 @@ class ExtensionGenerator {
       }
     }
     
+    block.code ??= ""
+    block.code = block.code.toString()
+
     const processedBlock = {
       "opcode": block.opcode,
       "blockType": this.blockTypeMap[block.blockType],
       "text": block.text,
-      "code": block.code || "",
+      "code": block.code.replaceAll("\"","\\\"") || "",
       "func": "err"
     };
     
@@ -140,16 +143,26 @@ class ExtensionGenerator {
       }
       // For BOOLEAN blocks
       else if (block.blockType.includes('BOOLEAN')) {
-        const valueArg = Object.keys(block.arguments)[0]; // Typically first arg is the value
-        const valueGenId = block.arguments[valueArg].gen_id;
-        blockCode += `          this.source += \`\\nvm.runtime.visualReport("\${block.id}", \${${valueGenId}});\\n\`;\n`;
+        if (block.arguments && Object.keys(block.arguments).length > 0) {
+          const valueArg = Object.keys(block.arguments)[0]; // Typically first arg is the value
+          const valueGenId = block.arguments[valueArg].gen_id;
+          blockCode += `          this.source += \`\\nvm.runtime.visualReport("\${block.id}", \${${valueGenId}});\\n\`;\n`;
+        } else {
+          // No arguments case
+          blockCode += `          this.source += \`\\nvm.runtime.visualReport("\${block.id}", ${block.code});\\n\`;\n`;
+        }
         blockCode += `          return;\n`;
       }
       // For REPORTER blocks
       else if (block.blockType.includes('REPORTER')) {
-        const valueArg = Object.keys(block.arguments)[0]; // Typically first arg is the value
-        const valueGenId = block.arguments[valueArg].gen_id;
-        blockCode += `          this.source += \`\\nvm.runtime.visualReport("\${block.id}", \${${valueGenId}});\\n\`;\n`;
+        if (block.arguments && Object.keys(block.arguments).length > 0) {
+          const valueArg = Object.keys(block.arguments)[0]; // Typically first arg is the value
+          const valueGenId = block.arguments[valueArg].gen_id;
+          blockCode += `          this.source += \`\\nvm.runtime.visualReport("\${block.id}", \${${valueGenId}});\\n\`;\n`;
+        } else {
+          // No arguments case
+          blockCode += `          this.source += \`\\nvm.runtime.visualReport("\${block.id}", ${block.code});\\n\`;\n`;
+        }
         blockCode += `          return;\n`;
       }
       
@@ -327,7 +340,7 @@ class ExtensionGenerator {
     return `    getInfo() {
       return {
         id: '${extension.id}',
-        name: '${extension.name}',
+        name: '${extension.name.replaceAll("'","\\'")}',
         color1: '${extension.color1}',
         ${blocksString}
       };
@@ -343,10 +356,15 @@ class ExtensionGenerator {
   generateExtension(extension, blocks) {
     blocks = blocks.map(block => this.processBlock(block));
     const getInfoMethod = this.generateGetInfo(extension, blocks);
+    console.log("get info")
     const jsgpCode = this.generateJSGPCode(extension, blocks);
+    console.log("jsgp")
     const inputHandlerCode = this.generateInputHandlerCode(extension, blocks);
+    console.log("input")
     const stgpCode = this.generateSTGPCode(extension, blocks);
+    console.log("stgp")
     const stgpInputCode = this.generateSTGPInputHandlerCode(extension, blocks);
+    console.log("stgp input")
     
     // Generate the extension code
     const extensionCode = `${extension.comment}
